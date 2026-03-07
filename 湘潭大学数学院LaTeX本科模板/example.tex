@@ -1,0 +1,165 @@
+\documentclass{xtu_thesis}
+
+\begin{document}
+	
+	% ==================== 封面（需单独制作） ====================
+	% 此处省略封面
+	% ==================== 前置部分：罗马数字页码 ====================
+	\frontmatter
+	
+	% ==================== 中文摘要 ====================
+	\chineseabstract
+	
+	\begin{abstractcn}
+		针对近场动力学 Peridynamics 在处理不连续断裂问题时面临的计算成本高昂及边界效应显著等挑战，本文依托 FEALPy 有限元分析框架，系统开展了键型近场动力学的数值实现、高性能算法重构及异构模型的耦合研究。
+	\end{abstractcn}
+	
+	\keywordscn{近场动力学；FEALPy}
+	
+	% ==================== 英文摘要 ====================
+	\englishabstract
+	
+	\begin{abstracten}
+		To address the challenges of high computational costs and significant boundary effects encountered by Peridynamics (PD) in modeling discontinuous fractures, this thesis systematically investigates the numerical implementation, high-performance algorithmic reconstruction, and multi-scale coupling of bond-based Peridynamics, leveraging the FEALPy finite element analysis framework. 
+	\end{abstracten}
+	
+	\keywordsen{Peridynamics; FEALPy}
+	
+	% ==================== 目录 ====================
+	\tableofcontentscustom
+	
+	% ==================== 正文：阿拉伯数字页码 ====================
+	\mainmatter
+	% ==================== 第1章 ====================
+	\section{绪论}
+	
+	\subsection{研究背景与意义}
+	传统连续介质力学在处理裂纹扩展时面临偏微分方程在奇异点失效的数学困难。近场动力学作为一种非局部宏观力学理论\textsuperscript{\hyperlink{ref:silling2000}{[1]}}，采用积分方程重构本构关系，从根本上避免了空间导数的不连续性问题。然而该方法在实际工程应用中存在计算开销庞大以及表面效应显著的缺陷。本文针对上述问题展开系统研究，旨在提升该方法的计算效率与求解精度。相关研究不仅能够完善非局部力学计算体系\textsuperscript{\hyperlink{ref:madenci2014}{[2]}}，也为复杂介质的损伤破坏分析提供了可靠的数值工具。
+	
+	\subsection{国内外研究现状}
+	近年来国内外学者在非局部力学的高效计算方面取得了实质性进展。部分研究致力于引入快速多极子算法加速空间积分计算，另有研究聚焦于构建多尺度耦合框架以降低整体计算自由度。这些方案在特定场景下表现出良好性能，但面对包含复杂裂纹拓扑的动态演化过程时，其并行效率与界面能量一致性仍有待进一步提升。本文依托现有的开源计算框架，尝试从底层数据结构出发进行张量化重构，从而探寻更为普适的高效求解路径。
+	
+	% ==================== 第2章 ====================
+	\section{理论基础与公式示例}
+	
+	\subsection{基本理论框架}
+	近场动力学的运动方程通过空间内邻域质点间的相互作用力积分来描述物质点的力学行为。物质点在时间步内的加速度由其邻域内的作用力密度积分与外力密度共同决定。
+	
+	\subsubsection{键型本构方程}
+	基于中心力场假设的微观弹脆性本构模型可表示为如下积分形式：
+	\begin{equation}
+		\rho \ddot{\boldsymbol{u}}(\boldsymbol{x}, t) = \int_{\mathcal{H}_{\boldsymbol{x}}} \boldsymbol{f}(\boldsymbol{u}(\boldsymbol{x}', t) - \boldsymbol{u}(\boldsymbol{x}, t), \boldsymbol{x}' - \boldsymbol{x}) \, \mathrm{d}V_{\boldsymbol{x}'} + \boldsymbol{b}(\boldsymbol{x}, t)
+		\label{eq:pd_motion}
+	\end{equation}
+	
+	公式( \ref{eq:pd_motion}) 中各符号具备明确的物理意义，密度参数与位移向量共同反映了物质微元的动态响应特性。通过设定临界伸长率准则，可以自然地捕捉到材料内部的损伤累积与宏观裂纹萌生过程。
+	
+	% ==================== 第3章 ====================
+	\section{图表环境与排版范例}
+	
+	\subsection{数据图表展示}
+	在实验分析环节，合理的图表排版对于呈现计算结果的准确性至关重要。本节将依次展示不同复杂度的图像与表格排版方法，所有格式均严格遵循文档类全局设定。
+	
+	\subsubsection{图像排版示例}
+	单图排版常用于展示全局性的结果分布或收敛曲线。图 \ref{fig:single} 展示了典型的数值误差随网格密度变化的收敛趋势。
+	
+	\begin{figure}[htbp]
+		\centering
+		% 此处使用 example-image-a 作为占位图，实际使用时替换为具体图片路径
+		\includegraphics[width=0.6\textwidth]{example-image-a}
+		\caption{数值算法收敛性分析示意图}
+		\label{fig:single}
+		\fignote{注：横轴表示空间离散步长，纵轴表示相对误差的对数值，图线斜率代表算法精度阶数。}
+	\end{figure}
+	
+	双图并排排版适用于对比分析同一工况下两种不同物理量的分布情况。图 \ref{fig:double} 对比了应力场与损伤场的演化状态。
+	
+	\begin{figure}[htbp]
+		\centering
+		\begin{subfigure}{0.45\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{example-image-b}
+			\caption{损伤场分布}
+			\label{fig:double_a}
+		\end{subfigure}
+		\hfill
+		\begin{subfigure}{0.45\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{example-image-c}
+			\caption{位移场分布}
+			\label{fig:double_b}
+		\end{subfigure}
+		\caption{不同物理量分布状态对比}
+		\label{fig:double}
+		\fignote{注：左图展示了裂纹尖端的局部损伤集中现象，右图呈现了对应的位移不连续特征。}
+	\end{figure}
+	
+	三图并排常用于展示同一物理过程在不同时间步的动态演化序列。图 \ref{fig:triple} 记录了裂纹扩展过程的三个关键时刻。
+	
+	\begin{figure}[htbp]
+		\centering
+		\begin{subfigure}{0.31\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{example-image-a}
+			\caption{初始阶段}
+		\end{subfigure}
+		\hfill
+		\begin{subfigure}{0.31\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{example-image-b}
+			\caption{扩展阶段}
+		\end{subfigure}
+		\hfill
+		\begin{subfigure}{0.31\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{example-image-c}
+			\caption{破坏阶段}
+		\end{subfigure}
+		\caption{裂纹动态扩展全过程时间序列}
+		\label{fig:triple}
+	\end{figure}
+	
+	\subsubsection{表格排版示例}
+	学术论文中通常采用三线表呈现定量数据。表 \ref{tab:performance} 对比了不同计算策略下的时间消耗与资源占用情况，数据表明张量化计算方案具备显著优势。
+	
+	\begin{table}[htbp]
+		\centering
+		\caption{不同数值算法的计算性能对比}
+		\label{tab:performance}
+		\begin{tabular}{lccc}
+			\toprule
+			算法类型 & 自由度规模 & 迭代步数 & 求解耗时 \\
+			\midrule
+			传统串行算法 & 50000 & 1000 & 245.6s \\
+			多线程并行算法 & 50000 & 1000 & 68.2s \\
+			张量化硬件加速算法 & 50000 & 1000 & 12.5s \\
+			\bottomrule
+		\end{tabular}
+		
+		\tablenote{注：表中测试平台为统一工作站，耗时数据取多次运行的平均值，单位为秒。}
+	\end{table}
+	
+	% ==================== 第4章 ====================
+	\section{总结与展望}
+	
+	\subsection{主要结论}
+	本文系统梳理了非局部力学算法优化的核心路径，通过张量化重构与区域耦合策略，成功克服了传统计算框架在效率与精度上的局限。实验数据客观反映出新算法在处理大规模离散系统时具有极高的鲁棒性与并行可扩展性。
+	
+	\subsection{未来工作展望}
+	后续研究将重点关注跨尺度损伤模型的构建，计划引入自适应网格细化技术以进一步削减非危险区域的计算开销。此外将探索该计算框架在复杂流固耦合环境中的工程适用性。
+	
+	% ==================== 参考文献 ====================
+	\references
+	\begin{referencelist}
+		\refitem{1}{\hypertarget{ref:silling2000}{}Silling S A. Reformulation of elasticity theory for discontinuities and long-range forces[J]. Journal of the Mechanics and Physics of Solids, 2000, 48(1): 175-209.}
+		\refitem{2}{\hypertarget{ref:madenci2014}{}Madenci E, Oterkus E. Peridynamic Theory and Its Applications[M]. Springer, 2014.}
+		\refitem{3}{\hypertarget{ref:wei2021}{}魏春霞, 郑宏, 张健. 近场动力学方法的计算效率优化策略研究[J]. 固体力学学报, 2021, 42(5): 521-534.}
+		\refitem{4}{\hypertarget{ref:zhang2023}{}张青, 黄丹. 基于张量运算的近场动力学GPU并行加速算法[J]. 计算力学学报, 2023, 40(2): 215-223.}
+	\end{referencelist}
+	
+	% ==================== 致谢 ====================
+	\acknowledgement
+	
+	本论文的顺利完成离不开导师的悉心指导与实验室同学的无私帮助，在此向所有为本研究提供过建议与技术支持的人员致以最诚挚的谢意。
+	
+\end{document}
